@@ -1,0 +1,655 @@
+##this was all executed in a hpc cluster - some as batch jobs and some as interactive jobs using these paths - to run, make sure to change these paths 
+ssh taames@sockeye.arc.ubc.ca
+cd /arc/project/st-benmat01-1
+
+##transcriptome data fasta files uploaded onto a hpc cluster
+##these are the raw bp reads for each of the nine samples, which were then renamed by tissue, replicate, and read orientation
+###< insert here download keys and then instruct to rename > ###
+as1_left.fastq.gz
+as1_right.fastq.gz
+as2_left.fastq.gz
+as2_right.fastq.gz
+as3_left.fastq.gz
+as3_right.fastq.gz
+gi1_left.fastq.gz
+gi1_right.fastq.gz
+gi2_left.fastq.gz
+gi2_right.fastq.gz
+gi3_left.fastq.gz
+gi3_right.fastq.gz
+mt1_left.fastq.gz
+mt1_right.fastq.gz
+mt2_left.fastq.gz
+mt2_right.fastq.gz
+mt3_left.fastq.gz
+mt3_right.fastq.gz
+
+##create a new directory for the chaoborus trivittatus samples 
+mkdir /arc/project/st-benmat01-1/chaoborustxome
+#move samples 
+mv as1_left.fastq.gz as1_right.fastq.gz as2_left.fastq.gz as2_right.fastq.gz as3_left.fastq.gz as3_right.fastq.gz gi1_left.fastq.gz gi1_right.fastq.gz gi2_left.fastq.gz gi2_right.fastq.gz gi3_left.fastq.gz gi3_right.fastq.gz mt1_left.fastq.gz mt1_right.fastq.gz mt2_left.fastq.gz mt2_right.fastq.gz mt3_left.fastq.gz mt3_right.fastq.gz /arc/project/st-benmat01-1/chaoborustxome
+
+##ensure they're moved over properly 
+cd /arc/project/st-benmat01-1/chaoborustxome
+ls
+as1_left.fastq.gz   as3_right.fastq.gz  gi3_left.fastq.gz   mt2_right.fastq.gz
+as1_right.fastq.gz  gi1_left.fastq.gz   gi3_right.fastq.gz  mt3_left.fastq.gz
+as2_left.fastq.gz   gi1_right.fastq.gz  mt1_left.fastq.gz   mt3_right.fastq.gz
+as2_right.fastq.gz  gi2_left.fastq.gz   mt1_right.fastq.gz
+as3_left.fastq.gz   gi2_right.fastq.gz  mt2_left.fastq.gz
+
+##make a chaoborus trivittatus directory in the scratch folder 
+mkdir /scratch/st-benmat01-1/chaoborustxome
+cd /scratch/st-benmat01-1/chaoborustxome
+
+##run the trinity assembly in this directoty as a batch job - first running assembly untrimmed 
+#create a pbs file 
+nano trinity_untrim.pbs
+
+#!/bin/bash
+ 
+#PBS -l walltime=120:00:00,select=1:ncpus=32:mem=100gb
+#PBS -N trinity_ctrivTX1
+#PBS -A st-benmat01-1
+#PBS -m abe
+#PBS -M tames@zoology.ubc.ca
+#PBS -o output.txt
+#PBS -e error.txt
+ 
+################################################################################
+ 
+
+export TRINITY_HOME=/arc/project/st-benmat01-1/bin/trinityrnaseq-v2.13.2/
+
+#load modules 
+module load CVMFS_CC
+module load samtools
+module load boost
+module load python
+module load py-virtualenv
+
+#set job directory 
+cd $PBS_O_WORKDIR
+
+source /scratch/st-benmat01-1/trinity_env/bin/activate
+
+#use shell script to run the assembly 
+sh runUntrim.sh
+
+
+##create execution file 
+nano runUntrim.sh
+#!/bin/bash -ve
+
+#######################################################
+##  Run Trinity to Generate Transcriptome Assemblies ##
+#######################################################
+
+export PATH=/arc/project/st-benmat01-1/bin/bowtie2-2.4.5/:/arc/project/st-benmat01-1/bin/jellyfish-2.3.0/bin/:/arc/project/st-benmat01-1/bin/salmon-1.7.0_linux_x86_64/bin/:$PATH
+export TRINITY_HOME=/arc/project/st-benmat01-1/bin/trinityrnaseq-v2.13.2/
+
+if [ -z ${TRINITY_HOME} ]; then
+    echo "Must set env var TRINITY_HOME"
+    exit 1
+fi
+
+#parameters for assembly 
+${TRINITY_HOME}/Trinity --seqType fq        \
+        --CPU 32 --max_memory 100G  \
+        --samples_file /scratch/st-benmat01-1/chaoborustxome/ctrivTX1_samplesFile.txt   \
+           
+
+##### Done Running Trinity #####
+
+if [ $* ]; then
+    # check full-length reconstruction stats:
+
+    ${TRINITY_HOME}/util/misc/illustrate_ref_comparison.pl __indiv_ex_sample_derived/refSeqs.fa trinity_out_dir.Trinity.fasta 90
+
+    ./test_FL.sh --query  trinity_out_dir.Trinity.fasta --target __indiv_ex_sample_derived/refSeqs.fa --no_reuse
+
+fi
+           
+
+
+##create samplesFile
+nano ctrivTX1_samplesFile.txt
+
+#  Or,
+#      --samples_file /arc/project/st-benmat01-1/chaoborustxome        tab-delimited text file indicating biological replicate relationships.
+#                                  ex.
+
+
+
+as  as_rep1 /arc/project/st-benmat01-1/chaoborustxome/as1_left.fastq.gz /arc/project/st-benmat01-1/chaoborustxome/as1_right.fastq.gz
+as  as_rep2 /arc/project/st-benmat01-1/chaoborustxome/as2_left.fastq.gz /arc/project/st-benmat01-1/chaoborustxome/as2_right.fastq.gz    
+as  as_rep3 /arc/project/st-benmat01-1/chaoborustxome/as3_left.fastq.gz /arc/project/st-benmat01-1/chaoborustxome/as3_right.fastq.gz
+mt  mt_rep1 /arc/project/st-benmat01-1/chaoborustxome/mt1_left.fastq.gz /arc/project/st-benmat01-1/chaoborustxome/mt1_right.fastq.gz
+mt  mt_rep2 /arc/project/st-benmat01-1/chaoborustxome/mt2_left.fastq.gz /arc/project/st-benmat01-1/chaoborustxome/mt2_right.fastq.gz
+mt  mt_rep3 /arc/project/st-benmat01-1/chaoborustxome/mt3_left.fastq.gz /arc/project/st-benmat01-1/chaoborustxome/mt3_right.fastq.gz
+gi  gi_rep1 /arc/project/st-benmat01-1/chaoborustxome/gi1_left.fastq.gz /arc/project/st-benmat01-1/chaoborustxome/gi1_right.fastq.gz
+gi  gi_rep2 /arc/project/st-benmat01-1/chaoborustxome/gi2_left.fastq.gz /arc/project/st-benmat01-1/chaoborustxome/gi2_right.fastq.gz
+gi  gi_rep3 /arc/project/st-benmat01-1/chaoborustxome/gi3_left.fastq.gz /arc/project/st-benmat01-1/chaoborustxome/gi3_right.fastq.gz
+
+
+##submit the job 
+qsub trinity_test.pbs
+
+##download the fasta files locally 
+scp taames@dtn.sockeye.arc.ubc.ca:/scratch/st-benmat01-1/chaoborustxome/trinity_out_dir.Trinity.fasta /Users/tahneeames/Desktop
+scp taames@dtn.sockeye.arc.ubc.ca:/scratch/st-benmat01-1/chaoborustxome/trinity_out_dir.Trinity.fasta.gene_trans_map /Users/tahneeames/Desktop 
+
+
+##run assembly with trimmomatic to compare a trimmed and untrimmed assembly. To keep all files independent and trackable, it's best to make a new directory
+mkdir /scratch/st-benmat01-1/chaoborusTrim
+cd /scratch/st-benmat01-1/chaoborusTrim
+
+nano trinity_trimmed.pbs
+#!/bin/bash
+ 
+#PBS -l walltime=120:00:00,select=4:ncpus=32:mem=100gb
+#PBS -N trinity_ctrivTX2
+#PBS -A st-benmat01-1
+#PBS -m abe
+#PBS -M tames@zoology.ubc.ca
+#PBS -o output.txt
+#PBS -e error.txt
+ 
+################################################################################
+
+export TRINITY_HOME=/arc/project/st-benmat01-1/bin/trinityrnaseq-v2.13.2/
+
+module load samtools
+module load boost
+module load python
+module load py-virtualenv
+ 
+cd $PBS_O_WORKDIR
+
+source /scratch/st-benmat01-1/trinity_env/bin/activate
+
+sh runTrim.sh
+
+##write run file 
+nano runTrim.sh
+#!/bin/bash -ve
+
+#######################################################
+##  Run Trinity to Generate Transcriptome Assemblies ##
+#######################################################
+
+export PATH=/arc/project/st-benmat01-1/bin/bowtie2-2.4.5/:/arc/project/st-benmat01-1/bin/jellyfish-2.3.0/bin/:/arc/project/st-benmat01-1/bin/salmon-1.7.0_linux_x86_64/bin/:$PATH
+export TRINITY_HOME=/arc/project/st-benmat01-1/bin/trinityrnaseq-v2.13.2/
+
+if [ -z ${TRINITY_HOME} ]; then
+    echo "Must set env var TRINITY_HOME"
+    exit 1
+fi
+
+
+${TRINITY_HOME}/Trinity --seqType fq        \
+        --CPU 32 --max_memory 100G --trimmomatic \
+        --samples_file /scratch/st-benmat01-1/chaoborustxome/ctrivTX1_samplesFile.txt   \
+           
+
+##### Done Running Trinity #####
+
+if [ $* ]; then
+    # check full-length reconstruction stats:
+
+    ${TRINITY_HOME}/util/misc/illustrate_ref_comparison.pl __indiv_ex_sample_derived/refSeqs.fa trinity_out_dir.TrinityTrim.fasta 90
+
+    ./test_FL.sh --query  trinity_out_dir.TrinityTrim.fasta --target __indiv_ex_sample_derived/refSeqs.fa --no_reuse
+
+fi
+
+##submit this job 
+qsub trinity_trimmed.pbs
+
+
+##running fastqc to assess read quality, checking whether the read quality was decent, and whether the trimmed or untrimmed assembly worked best
+
+#!/bin/bash
+
+#PBS -l walltime=72:00:00,select=1:ncpus=18:mem=100gb
+#PBS -N fastQC
+#PBS -A st-benmat01-1
+#PBS -m abe
+#PBS -M tames@zoology.ubc.ca
+#PBS -o output.txt
+#PBS -e error.txt
+ 
+################################################################################
+
+
+module load CVMFS_CC
+module load fastqc 
+
+cd $PBS_O_WORKDIR
+
+#execute fastqc 
+fastqc /scratch/st-benmat01-1/chaoborustxome/samples/*.gz -o -t 18 /scratch/st-benmat01-1/chaoborustxome/fastqc_report.txt
+
+
+##assessing quality of reads 
+##extracting contig length from trimmed assembly
+##move to that directory
+cd /scratch/st-benmat01-1/chaoborusTrim
+##make text file with contig lengths 
+grep -oP '(?<=len=)(\s+)?\K([^ ]*)' trinity_out_dir.TrinityTrim.fasta > contigLength_trimRead.txt
+
+##get 5 prime and 3 prime partials, write into text files 
+cd trinity_out_dir.Trinity.fasta.transdecoder_dir
+
+grep -o "5prime" longest_orfs.cds > fivePrime_regionsTr.txt
+grep -o "3prime" longest_orfs.cds > threePrime_regionsTr.txt
+##all you really need are these numbers - don't need the actual txt files, but okay to have anyway
+wc -l fivePrime_regionsTr.txt
+wc -l threePrime_regionsTr.txt
+
+##get trinity stats log
+/arc/project/st-benmat01-1/trinityrnaseq-v2.13.2/util/TrinityStats.pl trinity_out_dir.TrinityTrim.fasta > trinityTrim_Stats.log
+
+##do the same with the assembly without trimmomatic 
+cd ../
+cd ../chaoborustxome
+grep -oP '(?<=len=)(\s+)?\K([^ ]*)' trinity_out_dir.Trinity.fasta > contigLength_Read.txt
+
+cd trinity_out_dir.Trinity.fasta.transdecoder_dir
+
+grep -o "5prime" longest_orfs.cds > fivePrime_regionsUn.txt
+grep -o "3prime" longest_orfs.cds > threePrime_regionsUn.txt
+wc -l fivePrime_regionsUn.txt
+wc -l threePrime_regionsUn.txt
+
+/arc/project/st-benmat01-1/bin/trinityrnaseq-v2.13.2/util/TrinityStats.pl trinity_out_dir.Trinity.fasta > trinityUntrimmed_Stats.log
+
+##download the contigLength txt files and trinity stats files locally
+##plot in R (code available separately)
+
+##move forward with the trimmed assembly for the annotation steps
+#make a new directory for the annotation 
+mkdir /scratch/st-benmat01-1/trinotateTrim
+cd /scratch/st-benmat01-1/trinotateTrim
+
+##move important trinity assembly files into a project file to keep track of them 
+mkdir /arc/project/st-benmat01-1/trinityFiles-trim
+cd /scratch/st-benmat01-1/chaoborustxome
+cp ctrivTX1_samplesFile.txt /arc/project/st-benmat01-1/trinityFiles-trim
+cd scratch/st-benmat01-1/trinityTrim
+cp trinity_out_dir.Trinity.fasta /arc/project/st-benmat01-1/trinityFiles-trim
+cp trinity_out_dir.Trinity.fasta.gene_trans_map /arc/project/st-benmat01-1/trinityFiles-trim
+cp longest_orfs.pep /arc/project/st-benmat01-1/trinityFiles-trim
+
+
+#download swissprot database 
+wget  ftp://ftp.ncbi.nlm.nih.gov/blast/db/swissprot.tar.gz
+gunnzip swissprot.tar.gz
+tar -xvf swissprot.tar 
+
+##make trinotate batch job file 
+nano trinotateTrimmed.pbs 
+
+#!/bin/bash
+
+#PBS -l walltime=96:00:00,select=1:ncpus=40:mem=187gb
+#PBS -N trinotate1
+#PBS -A st-benmat01-1
+#PBS -m abe
+#PBS -M tames@zoology.ubc.ca
+#PBS -o output.txt
+#PBS -e error.txt
+ 
+################################################################################
+
+cd $PBS_O_WORKDIR
+
+module load CVMFS_CC; module load gcc; module load trinotate
+module load hmmer; module load blast+; module load signalp; module load rnammer
+module load transdecoder; module load tmhmm 
+
+
+
+# HMMSCAN
+hmmscan --cpu 40 --domtblout TrinotatePFAM.out /scratch/st-benmat01-1/trinotate/Trinotate-Trinotate-v3.2.2/Pfam-A.hmm /arc/project/st-benmat01-1/trinityFiles-trim/longest_orfs.pep > pfam.log
+
+
+# SignalP
+signalp -f short -n signalp.out /arc/project/st-benmat01-1/trinityFiles-trim/longest_orfs.pep > signalp.out
+
+# TMHMM
+tmhmm --short < /arc/project/st-benmat01-1/trinityFiles-trim/longest_orfs.pep > tmhmm.out
+
+
+#RNAmmer
+/scratch/st-benmat01-1/trinotate/Trinotate-Trinotate-v3.2.2/util/rnammer_support/RnammerTranscriptome.pl --transcriptome /arc/project/st-benmat01-1/trinityFiles-trim/trinity_out_dir.TrinityTrim.fasta --path_to_rnammer /cvmfs/soft.computecanada.ca/easybuild/software/2020/avx2/Core/rnammer/1.2/rnammer
+
+#blastx 
+blastx -query /arc/project/st-benmat01-1/trinityFiles-trim/trinity_out_dir.TrinityTrim.fasta \
+         -db /scratch/st-benmat01-1/trinotateTrim/swissprot -num_threads 2 \
+         -max_target_seqs 1 -outfmt 6 -evalue 1e-5 \
+          > blastx.outfmt6
+
+#blastp 
+blastp -query /arc/project/st-benmat01-1/trinityFiles-trim/longest_orfs.pep \
+         -db /scratch/st-benmat01-1/trinotateTrim/swissprot -num_threads 2 \
+         -max_target_seqs 1 -outfmt 6 -evalue 1e-5 \
+          > blastp.outfmt6
+
+
+
+##make sql file  
+##write conf.txt 
+
+##########################################################################
+# Globals. Specify resource locations and other templated parameter values
+# Use format {__token__} when using token values in command strings.
+# Other templated parameters are defined by the parent script.
+##########################################################################
+
+
+[GLOBALS]
+
+# progs
+TRANSDECODER_DIR=/cvmfs/soft.computecanada.ca/easybuild/software/2020/avx2/Compiler/gcc9/transdecoder/5.5.0/bin/
+BLASTX_PROG=/scratch/st-benmat01-1/trinityTrim/blastx
+BLASTP_PROG=/scratch/st-benmat01-1/trinityTrim/blastp
+SIGNALP_PROG=/scratch/st-benmat01-1/trinityTrim/signalp
+TMHMM_PROG=/scratch/st-benmat01-1/trinityTrim/tmhmm
+RNAMMER_TRANS_PROG=/cvmfs/soft.computecanada.ca/easybuild/software/2020/avx2/Compiler/gcc9/trinotate/3.2.2/util/rnammer_support/RnammerTranscriptome.pl
+RNAMMER=/cvmfs/soft.computecanada.ca/easybuild/software/2020/avx2/Core/rnammer/1.2/rnammer
+HMMSCAN_PROG=hmmscan
+
+# dbs
+SWISSPROT_PEP=/scratch/st-benmat01-1/trinityTrim/uniprot_sprot.pep
+PFAM_DB=/scratch/st-benmat01-1/trinityTrim/Pfam-A.hmm
+
+
+####################
+#  BioIfx computes 
+####################
+
+[TRANSDECODER_LONGORF]
+RANK=100
+RUN=T
+CMD={__TRANSDECODER_DIR__}/TransDecoder.LongOrfs -t {__TRANSCRIPTS_FASTA__}
+
+
+[TRANSDECODER_PREDICT]
+RANK=101
+RUN=T
+CMD={__TRANSDECODER_DIR__}/TransDecoder.Predict -t {__TRANSCRIPTS_FASTA__} --cpu {__CPU__}
+
+
+[BLASTX_SPROT_TRANS]
+RANK=200
+RUN=T
+CMD={__BLASTX_PROG__} -db {__SWISSPROT_PEP__} -query {__TRANSCRIPTS_FASTA__} -num_threads {__CPU__} -max_target_seqs 1 -outfmt 6 -evalue 1e-5 > swissprot.blastx.outfmt6
+
+
+[BLASTX_SPROT_PEP]
+RANK=300
+RUN=T
+CMD={__BLASTP_PROG__} -query {__TRANSCRIPTS_FASTA__}.transdecoder.pep -db {__SWISSPROT_PEP__} -num_threads {__CPU__}  -max_target_seqs 1 -outfmt 6 -evalue 1e-5 > swissprot.blastp.outfmt6
+
+
+[PFAM]
+RANK=400
+RUN=T
+CMD={__HMMSCAN_PROG__} --cpu {__CPU__} --domtblout TrinotatePFAM.out {__PFAM_DB__} {__TRANSCRIPTS_FASTA__}.transdecoder.pep  > pfam.log
+
+
+[SIGNALP]
+RANK=500
+RUN=T
+CMD={__SIGNALP_PROG__} -f short -n signalp.out {__TRANSCRIPTS_FASTA__}.transdecoder.pep > sigP.log
+
+
+[TMHMM]
+RANK=600
+RUN=T
+CMD={__TMHMM_PROG__} --short < {__TRANSCRIPTS_FASTA__}.transdecoder.pep > tmhmm.out
+
+[RNAMMER]
+RANK=700
+RUN=T
+CMD={__RNAMMER_TRANS_PROG__} --transcriptome {__TRANSCRIPTS_FASTA__} --path_to_rnammer {__RNAMMER__} 
+# generates file: {__TRANSCRIPTS_FASTA__}.rnammer.gff
+
+
+#############################
+# Trinotate Database Loading
+#############################
+
+[TRINOTATE_INIT]
+RANK=1100
+RUN=T
+CMD={__TRINOTATE_HOME__}/Trinotate {__TRINOTATE_SQLITE__} init --gene_trans_map {__GENE_TO_TRANS_MAP__} --transcript_fasta {__TRANSCRIPTS_FASTA__} --transdecoder_pep {__TRANSCRIPTS_FASTA__}.transdecoder.pep
+
+[TRINOTATE_LOAD_SPROT_BLASTX]
+RANK=1200
+RUN=T
+CMD={__TRINOTATE_HOME__}/Trinotate  {__TRINOTATE_SQLITE__} LOAD_swissprot_blastx swissprot.blastx.outfmt6 
+
+[TRINOTATE_LOAD_SPROT_BLASTP]
+RANK=1300
+RUN=T
+CMD={__TRINOTATE_HOME__}/Trinotate  {__TRINOTATE_SQLITE__} LOAD_swissprot_blastp swissprot.blastp.outfmt6 
+
+
+[TRINOTATE_LOAD_PFAM]
+RANK=1400
+RUN=T
+CMD={__TRINOTATE_HOME__}/Trinotate  {__TRINOTATE_SQLITE__} LOAD_pfam TrinotatePFAM.out
+
+[TRINOTATE_LOAD_RNAMMER]
+RANK=1500
+RUN=T
+CMD={__TRINOTATE_HOME__}/Trinotate  {__TRINOTATE_SQLITE__} LOAD_rnammer {__TRANSCRIPTS_FASTA__}.rnammer.gff
+
+[TRINOTATE_LOAD_TMHMM]
+RANK=1600
+RUN=T
+CMD={__TRINOTATE_HOME__}/Trinotate  {__TRINOTATE_SQLITE__} LOAD_tmhmm tmhmm.out
+
+[TRINOTATE_LOAD_SIGNALP]
+RANK=1700
+RUN=T
+CMD={__TRINOTATE_HOME__}/Trinotate  {__TRINOTATE_SQLITE__} LOAD_signalp signalp.out
+
+[TRINOTATE_REPORT]
+RANK=1800
+RUN=T
+CMD={__TRINOTATE_HOME__}/Trinotate  {__TRINOTATE_SQLITE__} report > Trinotate.xls
+
+
+[EXTRACT_GO]
+RANK=1900
+RUN=T
+CMD={__TRINOTATE_HOME__}/util/extract_GO_assignments_from_Trinotate_xls.pl  --Trinotate_xls Trinotate.xls -T -I > Trinotate.xls.gene_ontology
+
+[NAME_UPDATES]
+RANK=2000
+RUN=T
+CMD={__TRINOTATE_HOME__}/util/annotation_importer/import_transcript_names.pl {__TRINOTATE_SQLITE__} Trinotate.xls
+
+ 
+
+##create sqlite boilerplate and run the compilation to an xls file 
+
+cd /scratch/st-benmat01-1/trinotateTrim
+
+module load CVMFS_CC; module load gcc; module load trinotate;
+module load transdecoder; module load tmhmm; 
+module load blast+; module load signalp; module load rnammer; module load hmmer
+
+/cvmfs/soft.computecanada.ca/easybuild/software/2020/avx2/Compiler/gcc9/trinotate/3.2.2/admin/Build_Trinotate_Boilerplate_SQLite_db.pl trimotate
+
+gunzip uniprot_sprot.dat.gz
+gunzip Pfam-A.hmm.gz ; hmmpress Pfam-A.hmm
+makeblastdb -in uniprot_sprot.pep -dbtype prot
+
+##write pbs file for batch job
+nano sql.pbs
+
+#!/bin/bash
+
+#PBS -l walltime=96:00:00,select=1:ncpus=40:mem=187gb
+#PBS -N trinotate_sql
+#PBS -A st-benmat01-1
+#PBS -m abe
+#PBS -M tames@zoology.ubc.ca
+#PBS -o output.txt
+#PBS -e error.txt
+ 
+################################################################################
+
+cd $PBS_O_WORKDIR
+
+
+module load CVMFS_CC; module load gcc; module load trinotate;
+module load transdecoder; module load tmhmm; 
+module load blast+; module load signalp; module load rnammer; module load hmmer
+
+/cvmfs/soft.computecanada.ca/easybuild/software/2020/avx2/Compiler/gcc9/trinotate/3.2.2/auto/autoTrinotate.pl --Trinotate_sqlite trimotate.sqlite --transcripts /arc/project/st-benmat01-1/trinityFiles-trim/trinity_out_dir.TrinityTrim.fasta --gene_to_trans_map /arc/project/st-benmat01-1/trinityFiles-trim/trinity_out_dir.TrinityTrim.fasta.gene_trans_map --conf conf.txt --CPU 40
+
+
+##run targeted blast searches 
+## make a database to query 
+cd  /trinotateTrim
+module load CVMFS_CC; module load gcc; module load blast+
+
+#make database from trinotate output 
+#prot database from longest orfs
+makeblastdb -in /arc/project/st-benmat01-1/trinityFiles-trim/longest_orfs.pep -title chaoDB_pro -dbtype prot -out chaoDB_pro 
+#nucleotide database 
+makeblastdb -in /arc/project/st-benmat01-1/trinityFiles-trim/trinity_out_dir.Trinity.fasta -title chao_nt -dbtype nt -out chao_nt
+
+
+##run targeted gene experssion on some expected genes from vectorbase 
+module load CVMFS_CC; module load gcc; module load blast+
+
+##adding local files (compiled drosophila gene protein sequences into a fasta file based on expected/known epithelial genes)
+sftp taames@sockeye.arc.ubc.ca 
+cd /scratch/st-benmat01-1/trinotateTrim
+put /Users/tahneeames/Desktop/resilin.fasta
+put /Users/tahneeames/Desktop/dMelanogaster_prot.fasta
+
+##blast - can do interactive on cluster 
+##query assembled database for these expected genes from drosophila 
+blastp -query /scratch/st-benmat01-1/trinotateTrim/dMelanogaster_prot.fasta\
+         -db /scratch/st-benmat01-1/trinotateTrim/chaoDB_pro -out cTriv_aaTarget.outfmt6 \
+         -evalue 1e-20 -max_target_seqs 1 -outfmt 6
+##query assembled database for any trinity genes resembling resilin
+blastp -query /scratch/st-benmat01-1/trinotateTrim/resilin.fasta\
+         -db /scratch/st-benmat01-1/trinotateTrim/chaoDB_pro -out cTriv_resilin.outfmt6 -outfmt 6
+
+blastp -query /scratch/st-benmat01-1/trinotateTrim/dMelanogaster_prot.fasta\
+         -db /scratch/st-benmat01-1/trinotateTrim/chaoDB_pro -out cTriv_aaTarget.outfmt6 \
+         -evalue 1e-20 -max_target_seqs 1 -outfmt 6
+         
+
+
+#additional stats from the targeted blast
+module load samtools
+
+samtools faidx dMelanogaster_prot.fasta
+
+##download outputs locally, compile into spreadsheet (found separately)
+##use R to plot the summary results (see R code file)
+
+##differential expression analysis for the three tissue types
+
+cd /scratch/st-benmat01-1/chaoborusTrim
+
+##abundance estimations for each sample
+nano salmon.pbs
+#!/bin/bash
+
+#PBS -l walltime=96:00:00,select=1:ncpus=40:mem=187gb
+#PBS -N abundEst
+#PBS -A st-benmat01-1
+#PBS -m abe
+#PBS -M tames@zoology.ubc.ca
+#PBS -o outputAE.txt
+#PBS -e errorAE.txt
+ 
+################################################################################
+
+cd $PBS_O_WORKDIR
+
+module load CVMFS_CC; module load gcc; module load openmpi; module load samtools; module load salmon; module load trinity
+
+## prep the reference and run the alignment/estimation (can use same sample file used in trinity assembly)
+/cvmfs/soft.computecanada.ca/easybuild/software/2020/avx2/Core/trinity/2.14.0/trinityrnaseq-v2.14.0/util/align_and_estimate_abundance.pl  --transcripts /project/st-benmat01-1/trinityFiles-trim/trinity_out_dir.Trinity.fasta --seqType fq --samples_file /project/st-benmat01-1/trinityFiles-trim/ctrivTX1_samplesFile.txt --est_method salmon --trinity_mode --prep_reference --output_dir salmon_outdir
+
+
+nano abunEst_matrix.pbs
+
+#!/bin/bash
+
+#PBS -l walltime=96:00:00,select=1:ncpus=40:mem=187gb
+#PBS -N abundEst
+#PBS -A st-benmat01-1
+#PBS -m abe
+#PBS -M tames@zoology.ubc.ca
+#PBS -o outputAE2.txt
+#PBS -e errorAE2.txt
+ 
+################################################################################
+
+cd $PBS_O_WORKDIR
+
+module load CVMFS_CC; module load gcc/9.3.0; module load openmpi/4.0.3; module load samtools; module load salmon/1.7.0; module load trinity; module load perl; module load r; module load cmake
+
+
+# get a list of the salmon quant.sf files so we don't have to list them individually
+find . -maxdepth 2 -name "quant.sf" | tee salmon.quant_files.txt
+
+
+# generate the abundance matrix
+/cvmfs/soft.computecanada.ca/easybuild/software/2020/avx2/Core/trinity/2.14.0/trinityrnaseq-v2.14.0/util/abundance_estimates_to_matrix.pl --est_method salmon --gene_trans_map /project/st-benmat01-1/trinityFiles-trim/trinity_out_dir.Trinity.fasta.gene_trans_map --quant_files salmon.quant_files.txt --name_sample_by_basedir
+
+
+##download files locally to work with in R 
+sftp taames@dtn.sockeye.arc.ubc.ca
+lcd Desktop
+cd /scratch/st-benmat01-1/chaoborusTrim
+get salmon.gene.counts.matrix
+
+## run DESeq2 in R (code available in R code file)
+
+#for the gene ontology analysis, some data extraction from the trinity and trinotate output 
+#generate length stats in cluster (maybe a clumsy method)
+#making length file for goseq
+grep -P '^>' trinity_out_dir.Trinity.fasta > golength.txt
+#removing >
+tr -d '>' <golength.txt >goLength.txt
+#removing len= to keep just the length numbers
+tr -d 'len=' <goLength.txt >GOlength.txt
+#sep by tab instead of by space 
+tr ' ' \\t < GOlength.txt > goLength.txt
+#creating tab-delim file instead of comma-delim
+sed -e 's/,/\t/g' Trinotate.xls.gene_ontology > gene_ontologyGOID
+##use these files for the length files and go-term identities in R 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+c
