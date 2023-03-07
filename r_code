@@ -1,5 +1,5 @@
-
-#multiple steps throughout this script work in tandem with the bash script file, but all necessary files are uploaded onto data dryad (at some point)
+#R script for Chaoboridae 'omics project
+#multiple steps throughout this script work in tandem with the .sh script file, but all necessary files are uploaded onto data dryad (at some point)
 setwd("~/Desktop/rDirectory/chaoboridae")
 #graphing contig lengths from trinity stats output generated in Unix, comparing an assembly done using trimmomatic to an untrimmed assembly (Trinity)
 library(ggplot2)
@@ -69,6 +69,7 @@ library(gridExtra)
 library(patchwork)
 library(MetBrewer)
 library(tidyverse)
+library(dplyr)
 
 # load BLAST summary results
 geneContent=read.table("~/Desktop/Chaoborid/resultsFiles/chaoborus/trimmed/chaoborus.trimmed_targetedQuery.txt",header=T,sep="\t")  
@@ -222,9 +223,9 @@ library(ggthemes)
 library(scales)
 library(patchwork)
 library(gridExtra)
-library(pheatmap)
-library(ggvenn)
 library(MetBrewer)
+library(dplyr)
+
 #write salmon gene count matrix file into a csv or tab delimited txt file
 #write sample info file 
 #upload both into R 
@@ -259,8 +260,12 @@ chao_deMG5=results(chao_deSeq5,contrast=c("tissue","gut","malTube"))
 #PCA
 chao_rld<-rlog(chao_deSeq5,blind=TRUE)
 #plot 
-plotPCA(chao_rld,intgroup="tissue")+
+chao_3pca=plotPCA(chao_rld_2reps,intgroup=c("tissue","replicate"),returnData=TRUE)
+chao_pca=ggplot(chao_3pca,aes(PC1,PC2,col=tissue,shape=replicate,fill=tissue))+
+geom_point(size=3)+
 scale_color_manual(name="Tissue",labels=c("Air sac","Midgut","Malpighian tubule"),values=c("#8b6e28","#d4ba66","#b7751f"),limits=c("airSac","malTube","gut"))+
+scale_fill_manual(name="Tissue",labels=c("Air sac","Midgut","Malpighian tubule"),values=c("#8b6e28","#d4ba66","#b7751f"),limits=c("airSac","malTube","gut"))+
+scale_shape_manual(name="Replicate",labels=c("1","2","3"),values=c(21,22,24),limits=c("1","2","3"))+
 theme_few()+
 theme(plot.title = element_text(size = 12, family = "Tahoma", face = "bold"),
   text = element_text(size = 10, family = "Tahoma"),
@@ -268,12 +273,13 @@ theme(plot.title = element_text(size = 12, family = "Tahoma", face = "bold"),
   axis.text.x=element_text(size = 10),
   axis.text.y=element_text(size = 10),
   strip.text = element_text(face="bold"))+
-theme(legend.position=c(0.85,0.85))+
 theme(legend.title = element_text(size = 10, face = "bold"),text=element_text(size = 10, family = "Tahoma"))
 
 #remaking with two reps to see what the pca looks like without these wild outlliers 
 chao_geneCounts_2reps=read.table("~/Desktop/Chaoborid/resultsFiles/chaoborus/trimmed/chaoborus-trimmed.salmon.gene.TPM.not_cross_norm_2reps.txt",header=T,sep="\t",row.names=1)
 chao_metadata_2reps=read.table("~/Desktop/Chaoborid/resultsFiles/chaoborus/chao_metadata_2reps.txt",header=T,sep="\t", row.names=1)
+#match the orders 
+chao_metadata_2reps=chao_metadata_2reps[c(1,2,5,6,3,4),]
 #convert gene count dataframe into matrix
 chao_geneCounts_2reps_matrix=as.matrix(chao_geneCounts_2reps)
 #convert replicate number from numeric
@@ -282,8 +288,27 @@ chao_metadata_2reps$rep=as.factor(chao_metadata_2reps$rep)
 chao_dds_2rep <- DESeqDataSetFromMatrix(countData=round(chao_geneCounts_2reps_matrix), colData=chao_metadata_2reps, design= ~ tissue)
 #remove values less than 5
 chao_dds5_2reps <- chao_dds_2rep[rowSums(counts(chao_dds_2rep)) >= 5,]
-#run deseq2 on both 
+#run deseq2
 chao_deSeq_2reps=DESeq(chao_dds5_2reps)
+
+chao_rld_2reps<-rlog(chao_deSeq_2reps,blind=TRUE)
+
+#checking pca again 
+chao_2pca=plotPCA(chao_rld_2reps,intgroup=c("tissue","replicate"),returnData=TRUE)
+chao_pca_2reps=ggplot(chao_2pca,aes(PC1,PC2,col=tissue,shape=replicate,fill=tissue))+
+geom_point(size=3)+
+scale_color_manual(name="Tissue",labels=c("Air sac","Midgut","Malpighian tubule"),values=c("#8b6e28","#d4ba66","#b7751f"),limits=c("airSac","malTube","gut"))+
+scale_fill_manual(name="Tissue",labels=c("Air sac","Midgut","Malpighian tubule"),values=c("#8b6e28","#d4ba66","#b7751f"),limits=c("airSac","malTube","gut"))+
+scale_shape_manual(name="Replicate",labels=c("1","3"),values=c(21,22,24),limits=c("1","3"))+
+theme_few()+
+theme(plot.title = element_text(size = 12, family = "Tahoma", face = "bold"),
+  text = element_text(size = 10, family = "Tahoma"),
+  axis.title = element_text(face="bold",size=12),
+  axis.text.x=element_text(size = 10),
+  axis.text.y=element_text(size = 10),
+  strip.text = element_text(face="bold"))+
+theme(legend.title = element_text(size = 10, face = "bold"),text=element_text(size = 10, family = "Tahoma"))
+
 
 #building pairwise contrasts
 chao_deMT5_2reps = results(chao_deSeq_2reps,contrast=c("tissue","airSac","malTube"))
@@ -307,24 +332,23 @@ chao_deGI5_2repDF$diffexpressed5[chao_deGI5_2repDF$log2FoldChange < -5 & chao_de
 #trying new stuff in the middle of this randomly feb 2023 
 chao_mt_asUp_10=subset(chao_deMT5_2repDF, diffexpressed10 == 'UP')
 chao_gi_asUp_10=subset(chao_deGI5_2repDF, diffexpressed10 == 'UP')
-chao_as_up_Join_10lfc=merge(chao_mt_asUp_10, chao_gi_asUp_10, by=0)
+chao_as_up_Join10lfc=merge(chao_mt_asUp_10, chao_gi_asUp_10, by=0)
 chao_mt_asUp_5=subset(chao_deMT5_2repDF, diffexpressed5 == 'UP')
 chao_gi_asUp_5=subset(chao_deGI5_2repDF, diffexpressed5 == 'UP')
-chao_as_up_Join_5lfc=merge(chao_mt_asUp_5, chao_gi_asUp_5, by=0)
+chao_as_up_Join5lfc=merge(chao_mt_asUp_5, chao_gi_asUp_5, by=0)
 #print 
-write.csv(chao_as_up_Join_10lfc,"chao_airSac_upregulatedGene_list_LFC10.csv")
-write.csv(chao_as_up_Join_5lfc,"chao_airSac_upregulatedGene_list_LFC5.csv")
+write.csv(chao_as_up_Join10lfc,"chao_airSac_upregulatedGene_list_LFC10.csv")
+write.csv(chao_as_up_Join5lfc,"chao_airSac_upregulatedGene_list_LFC5.csv")
 
 #now with eucorethra
 euc_geneCounts=read.table("~/Desktop/Chaoborid/resultsFiles/eucorethra/trimmed/eucorethra-trimmed.salmon.gene.TPM.not_cross_norm",header=T,sep='\t',row.names=1)
-euc_metadata=read.table("~/Desktop/Chaoborid/resultsFiles/eucorethra/euc_metadata_2reps.txt",header=T,sep="\t", row.names=1)
+euc_metadata=read.table("~/Desktop/Chaoborid/resultsFiles/eucorethra/euc_metadata.txt",header=T,sep="\t", row.names=1)
+#reordering dataframes by tissue type
+euc_metadata=euc_metadata[c(8,5,3,7,2,9,6,4,1),]
 #convert gene count file into matrix
 euc_geneCounts_matrix=as.matrix(euc_geneCounts)
 #convert replicate number from numeric 
 euc_metadata$rep=as.factor(euc_metadata$rep)
-#reordering dataframes by tissue type
-euc_geneCounts_matrix <- euc_geneCounts_matrix[, c(6,4,1,7,2,9,8,5,3)]
-euc_metadata=euc_metadata[c(6,4,1,7,2,9,8,5,3),]
 
 #make deseq2 dataframe from these dataframes
 euc_dds <- DESeqDataSetFromMatrix(countData=round(euc_geneCounts_matrix), colData=euc_metadata, design= ~ tissue)
@@ -477,41 +501,61 @@ euc_volcano <- euc_volcano_MT + euc_volcano_GI + plot_layout(guides = "collect")
 ggsave("eucorethra_volcano.png",plot=last_plot(),bg="transparent")
 
 
-#moving on to some other stuff 
+##data wrangling and data merging 
 ### read in a trinotate files
-eucTrinotate=read.csv2('~/Desktop/Chaoborid/resultsFiles/eucorethra/trimmed/eucorethra.trimmed.Trinotate',sep="\t")
-chaoTrinotate=read.csv2('~/Desktop/Chaoborid/resultsFiles/chaoborus/trimmed/chaoborus.trimmed.Trinotate',sep="\t")
+chaoTrinotate=read.csv2("~/Desktop/Chaoborid/resultsFiles/chaoborus/trimmed/chaoborus.trimmed.Trinotate.txt",sep="\t")
+eucTrinotate=read.csv2("~/Desktop/Chaoborid/resultsFiles/eucorethra/trimmed/eucorethra.trimmed.Trinotate.txt",sep="\t")
 #filter trinotate output by DE gene list (see .sh file for trinotate generation)
-filter(eucTrinotate,X.gene_id %in% c(euc_tr_up_Join$Row.names)) -> eucorethraUpreg_annotate
-​filter(chaoTrinotate,X.gene_id %in% c(chao_as_up_Join$Row.names)) -> chaoborusUpreg_annotate
+names(chaoTrinotate)[1] <- "gene_id"
+names(eucTrinotate)[1] <- "gene_id"
+names(chao_as_up_Join5lfc)[1] <- "gene_id"
+names(euc_tr_up_Join5lfc)[1] <- "gene_id"
+​filter(chaoTrinotate,gene_id %in% c(chao_as_up_Join5lfc$gene_id)) -> chaoborusUpreg_annotate
+filter(eucTrinotate,gene_id %in% c(euc_tr_up_Join5lfc$gene_id)) -> eucorethraUpreg_annotate
+
 #export dataframes! 
-write.csv(eucorethraUpreg_annotate,file="eucorethra_trUp_trinotate.csv")
 write.csv(chaoborusUpreg_annotate,file="trivittatus_asUp_trinotate.csv")
+write.csv(eucorethraUpreg_annotate,file="eucorethra_trUp_trinotate.csv")
 
-#read targeted query files 
-chao_target=read.table("~/Desktop/Chaoborid/resultsFiles/chaoborus/trimmed/chaoborus.trimmed_targetedQuery.txt",header=T,sep='\t')
-euc_target=read.table("~/Desktop/Chaoborid/resultsFiles/eucorethra/trimmed/eucorethra.trimmed_targetedQuery.txt",header=T,sep='\t')
-#filter targeted query using upregulated gene list 
-chao_targetUP <- merge(chao_target, chaoborusUpreg_annotate, by.x = "transcriptID", by.y = "transcript_id",all.x = TRUE, all.y = TRUE)
-euc_targetUP <- merge(euc_target, eucorethraUpreg_annotate, by.x = "transcriptID", by.y = "transcript_id", all.x = TRUE, all.y = TRUE)
-#that returned nothing! lmao! maybe 10 lfc is too stringent? 
-chaoborusUpreg_annotate5 <- merge(chaoTrinotate, chao_as_up_Join_5lfc, by.x = "X.gene_id", by.y = "Row.names")
-eucorethraUpreg_annotate5 <- merge(eucTrinotate, euc_tr_up_Join5lfc, by.x = "X", by.y = "Row.names")
+#preserve both dataframes so I can sort by lfc values 
+chao_UP_5lfc_trinotate=merge(x = chao_as_up_Join5lfc, y = chaoTrinotate, by = "gene_id")
+euc_UP_5lfc_trinotate=merge(x = euc_tr_up_Join5lfc, y = eucTrinotate, by = "gene_id")
+#export
+write.csv(chao_UP_5lfc_trinotate,file="trivittatus_asUp_trinotateFULL.csv")
+write.csv(euc_UP_5lfc_trinotate,file="eucorethra_trUp_trinotateFULL.csv")
 
-chao_targetUP_5lfc <- merge(chao_target, chaoborusUpreg_annotate5, by.x = "transcriptID", by.y = "transcript_id")
-euc_targetUP_5lfc <- merge(euc_target, eucorethraUpreg_annotate5, by.x = "transcriptID", by.y = "transcript_id")
-write.csv(chao_targetUP_5lfc,"chao_targeted_upregulate5lfc.csv")
-write.csv(euc_targetUP_5lfc,"euc_targeted_upregulate5lfc.csv")
+chao_orderUP=arrange(chao_UP_5lfc_trinotate,log2FoldChange.x,log2FoldChange.y)
+euc_orderUP=arrange(euc_UP_5lfc_trinotate,log2FoldChange.x,log2FoldChange.y)
+#save these too 
+write.csv(chao_orderUP,file="trivittatus_asUp_trinotateFULL_lfcOrder.csv")
+write.csv(euc_orderUP,file="eucorethra_trUp_trinotateFULL_lfcOrder.csv")
+
+#making another one with no cutoff value, just the raw lfc values to see what will happen 
+#merge full pairwise dataframes 
+chao_de_merge=merge(chao_deMT5_2repDF, chao_deGI5_2repDF, by=0)
+chao_de_merge %>% filter(if_all(contains("p.value"),~ (.x< 0.5)))  -> chao_de_merge_pVal
+euc_de_merge=merge(euc_deMT5_DF, euc_deGI5_DF, by=0)
+euc_de_merge %>% filter(if_all(contains("p.value"),~ (.x< 0.5)))  -> euc_de_merge_pVal
+#then merge with trinotate file 
+names(chao_de_merge_pVal)[1] <- "gene_id"
+names(euc_de_merge_pVal)[1] <- "gene_id"
+chao_all_trinotate=merge(x = chaoTrinotate, y = chao_de_merge_pVal, by = "gene_id")
+euc_all_trinotate=merge(x = eucTrinotate, y = euc_de_merge_pVal, by = "gene_id")
+#rearrange 
+chao_orderALL=arrange(chao_all_trinotate,log2FoldChange.x,log2FoldChange.y)
+euc_orderALL=arrange(euc_all_trinotate,log2FoldChange.x,log2FoldChange.y)
+#export 
+write.csv(chao_orderALL,file="trivittatus_trinotateFULL_lfcOrder.csv")
+write.csv(euc_orderALL,file="eucorethra_trinotateFULL_lfcOrder.csv")
+
 
 
 #plotting specific genes functions 
 chao_isoCount=read.table("~/Desktop/Chaoborid/resultsFiles/chaoborus/trimmed/chaoborus-trimmed.salmon.isoform.TPM.not_cross_norm_2reps.txt",header=T,sep='\t',row.names=1)
-#filter out rep 2 (bad)
-chao_isoCount <- chao_isoCount[, c(2,9,1,7,4,8)]
 #rename columns to match tissue (no rep)
 colnames(chao_isoCount)[1:2] <- "trachea"
-colnames(chao_isoCount)[3:4] <- "malTube"
-colnames(chao_isoCount)[5:6] <- "midgut"
+colnames(chao_isoCount)[3:4] <- "midgut"
+colnames(chao_isoCount)[5:6] <- "malTube"
 #calc row means for each tissue type into new df 
 chao_isoMean <-t(apply(chao_isoCount,1, function(x) tapply(x,colnames(chao_isoCount),mean)))
 chao_isoMean=as.data.frame(chao_isoMean)
@@ -521,10 +565,9 @@ chao_isoMean=cbind(chao_isoMean,org)
 
 #doing the same thing with the eucorethra data set - converting to mean values for easy plotting :) 
 euc_isoCount=read.table("~/Desktop/Chaoborid/resultsFiles/eucorethra/trimmed/eucorethra-trimmed.salmon.isoform.TPM.not_cross_norm",header=T,sep='\t',row.names=1)
-euc_isoCount <- euc_isoCount[, c(6,4,1,7,2,9,8,5,3)]
-colnames(euc_isoCount)[1:3] <- "trachea"
+colnames(euc_isoCount)[1:3] <- "midgut"
 colnames(euc_isoCount)[4:6] <- "malTube"
-colnames(euc_isoCount)[7:9] <- "midgut"
+colnames(euc_isoCount)[7:9] <- "trachea"
 euc_isoMed<-t(apply(euc_isoCount,1, function(x) tapply(x,colnames(euc_isoCount),median)))
 euc_isoMean=as.data.frame(euc_isoMean)
 org=rep("eucorethra",times=259551)
@@ -744,4 +787,14 @@ mutate(category.x = case_when(
     ),
     locations = cells_body(
       columns = vars(trachea.y, malTube.y, midgut.y)))
+
+#merging trinotate file with TPM file to get transcription per gene 
+chao_isoCount$transcript_id <- rownames(chao_isoCount)
+euc_isoCount$transcript_id <- rownames(euc_isoCount)
+#merge into one dataframe :) 
+chao_trinotateTPM=merge(x = chao_isoCount, y = chaoTrinotate, by = "transcript_id")
+euc_trinotateTPM=merge(x = euc_isoCount, y = eucTrinotate, by = "transcript_id")
+#save! 
+write.csv(chao_trinotateTPM,"chao_trinotateTPM.csv")
+write.csv(euc_trinotateTPM,"euc_trinotateTPM.csv")
 
