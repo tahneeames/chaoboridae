@@ -824,10 +824,10 @@ write.csv(chao_trinotateTPM,"chao_trinotateTPM.csv")
 write.csv(euc_trinotateTPM,"euc_trinotateTPM.csv")
 
 #probably should add the tpm to the other spreadsheets, too? At least the blast and pfam ones 
-chao_order_Pfam_TPM=merge(x = chao_order_Pfam, y = chaoTrinotate, by = "transcript_id")
-euc_order_Pfam_TPM=merge(x = euc_order_Pfam, y = eucTrinotate, by = "transcript_id")
-chao_order_BLAST_TPM=merge(x = chao_order_BLAST, y = chaoTrinotate, by = "transcript_id")
-euc_order_BLAST_TPM=merge(x = euc_order_BLAST, y = eucTrinotate, by = "transcript_id")
+chao_order_Pfam_TPM=merge(x = chao_order_Pfam, y = chao_isoCount, by = "transcript_id")
+chao_order_BLAST_TPM=merge(x = chao_order_BLAST, y = chao_isoCount, by = "transcript_id")
+euc_order_Pfam_TPM=merge(x = euc_order_Pfam, y = euc_isoCount, by = "transcript_id")
+euc_order_BLAST_TPM=merge(x = euc_order_BLAST, y = euc_isoCount, by = "transcript_id")
 
 #save these too, why not! 
 write.csv(chao_order_Pfam_TPM,"chao_pfamTPM.csv")
