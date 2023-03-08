@@ -69,7 +69,6 @@ library(gridExtra)
 library(patchwork)
 library(MetBrewer)
 library(tidyverse)
-library(dplyr)
 
 # load BLAST summary results
 geneContent=read.table("~/Desktop/Chaoborid/resultsFiles/chaoborus/trimmed/chaoborus.trimmed_targetedQuery.txt",header=T,sep="\t")  
@@ -225,7 +224,6 @@ library(patchwork)
 library(gridExtra)
 library(MetBrewer)
 library(dplyr)
-
 #write salmon gene count matrix file into a csv or tab delimited txt file
 #write sample info file 
 #upload both into R 
@@ -506,14 +504,15 @@ ggsave("eucorethra_volcano.png",plot=last_plot(),bg="transparent")
 chaoTrinotate=read.csv2("~/Desktop/Chaoborid/resultsFiles/chaoborus/trimmed/chaoborus.trimmed.Trinotate.txt",sep="\t")
 eucTrinotate=read.csv2("~/Desktop/Chaoborid/resultsFiles/eucorethra/trimmed/eucorethra.trimmed.Trinotate.txt",sep="\t")
 #filter trinotate output by DE gene list (see .sh file for trinotate generation)
+#first rename the rows to merge in both dataframes for both organisms 
 names(chaoTrinotate)[1] <- "gene_id"
-names(eucTrinotate)[1] <- "gene_id"
 names(chao_as_up_Join5lfc)[1] <- "gene_id"
+names(eucTrinotate)[1] <- "gene_id"
 names(euc_tr_up_Join5lfc)[1] <- "gene_id"
+#filter by that row (gene identity in this case)
 ​filter(chaoTrinotate,gene_id %in% c(chao_as_up_Join5lfc$gene_id)) -> chaoborusUpreg_annotate
 filter(eucTrinotate,gene_id %in% c(euc_tr_up_Join5lfc$gene_id)) -> eucorethraUpreg_annotate
-
-#export dataframes! 
+#export dataframes
 write.csv(chaoborusUpreg_annotate,file="trivittatus_asUp_trinotate.csv")
 write.csv(eucorethraUpreg_annotate,file="eucorethra_trUp_trinotate.csv")
 
@@ -523,32 +522,50 @@ euc_UP_5lfc_trinotate=merge(x = euc_tr_up_Join5lfc, y = eucTrinotate, by = "gene
 #export
 write.csv(chao_UP_5lfc_trinotate,file="trivittatus_asUp_trinotateFULL.csv")
 write.csv(euc_UP_5lfc_trinotate,file="eucorethra_trUp_trinotateFULL.csv")
-
+#sort them by lfc value 
 chao_orderUP=arrange(chao_UP_5lfc_trinotate,log2FoldChange.x,log2FoldChange.y)
 euc_orderUP=arrange(euc_UP_5lfc_trinotate,log2FoldChange.x,log2FoldChange.y)
-#save these too 
+#export these too 
 write.csv(chao_orderUP,file="trivittatus_asUp_trinotateFULL_lfcOrder.csv")
 write.csv(euc_orderUP,file="eucorethra_trUp_trinotateFULL_lfcOrder.csv")
 
 #making another one with no cutoff value, just the raw lfc values to see what will happen 
-#merge full pairwise dataframes 
+#merge full pairwise dataframes from DESeq 
 chao_de_merge=merge(chao_deMT5_2repDF, chao_deGI5_2repDF, by=0)
 chao_de_merge %>% filter(if_all(contains("p.value"),~ (.x< 0.5)))  -> chao_de_merge_pVal
+#eucorethra too 
 euc_de_merge=merge(euc_deMT5_DF, euc_deGI5_DF, by=0)
 euc_de_merge %>% filter(if_all(contains("p.value"),~ (.x< 0.5)))  -> euc_de_merge_pVal
 #then merge with trinotate file 
+#rename these ones too just like with the other df
 names(chao_de_merge_pVal)[1] <- "gene_id"
 names(euc_de_merge_pVal)[1] <- "gene_id"
+#merge to have an annotated dataframe with lfc values and gene homologies/ontologies/pathways
 chao_all_trinotate=merge(x = chaoTrinotate, y = chao_de_merge_pVal, by = "gene_id")
 euc_all_trinotate=merge(x = eucTrinotate, y = euc_de_merge_pVal, by = "gene_id")
-#rearrange 
+#rearrange by lfc 
 chao_orderALL=arrange(chao_all_trinotate,log2FoldChange.x,log2FoldChange.y)
 euc_orderALL=arrange(euc_all_trinotate,log2FoldChange.x,log2FoldChange.y)
 #export 
 write.csv(chao_orderALL,file="trivittatus_trinotateFULL_lfcOrder.csv")
 write.csv(euc_orderALL,file="eucorethra_trinotateFULL_lfcOrder.csv")
-
-
+#okay but a lot of the annotations are blank! Let's do more sifting 
+#filter only genes that have a blast result 
+#for some reason the trinotate output uses little periods for blank spaces - going to remove them so I can filter the data 
+is.na(chao_orderALL) <- chao_orderALL == "."
+#filter based on presence of blast result
+chao_orderALL %>% filter(!if_all(c(sprot_Top_BLASTX_hit, sprot_Top_BLASTP_hit), is.na)) -> chao_order_BLAST
+#another based on pfam 
+chao_orderALL %>% filter(!is.na(Pfam)) -> chao_order_Pfam
+#eucorethra now 
+is.na(euc_orderALL) <- euc_orderALL == "."
+euc_orderALL %>% filter(!if_all(c(sprot_Top_BLASTX_hit, sprot_Top_BLASTP_hit), is.na)) -> euc_order_BLAST
+euc_orderALL %>% filter(!is.na(Pfam)) -> euc_order_Pfam
+#save these! 
+write.csv(chao_order_BLAST,file="trivittatus_trinotateBLAST_lfcOrder.csv")
+write.csv(chao_order_Pfam,file="trivittatus_trinotatePFAM_lfcOrder.csv")
+write.csv(euc_order_BLAST,file="eucorethra_trinotateBLAST_lfcOrder.csv")
+write.csv(euc_order_Pfam,file="eucorethra_trinotatePFAM_lfcOrder.csv")
 
 #plotting specific genes functions 
 chao_isoCount=read.table("~/Desktop/Chaoborid/resultsFiles/chaoborus/trimmed/chaoborus-trimmed.salmon.isoform.TPM.not_cross_norm_2reps.txt",header=T,sep='\t',row.names=1)
