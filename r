@@ -823,3 +823,28 @@ euc_trinotateTPM=merge(x = euc_isoCount, y = eucTrinotate, by = "transcript_id")
 write.csv(chao_trinotateTPM,"chao_trinotateTPM.csv")
 write.csv(euc_trinotateTPM,"euc_trinotateTPM.csv")
 
+#probably should add the tpm to the other spreadsheets, too? At least the blast and pfam ones 
+chao_order_Pfam_TPM=merge(x = chao_order_Pfam, y = chaoTrinotate, by = "transcript_id")
+euc_order_Pfam_TPM=merge(x = euc_order_Pfam, y = eucTrinotate, by = "transcript_id")
+chao_order_BLAST_TPM=merge(x = chao_order_BLAST, y = chaoTrinotate, by = "transcript_id")
+euc_order_BLAST_TPM=merge(x = euc_order_BLAST, y = eucTrinotate, by = "transcript_id")
+
+#save these too, why not! 
+write.csv(chao_order_Pfam_TPM,"chao_pfamTPM.csv")
+write.csv(euc_order_Pfam_TPM,"euc_pfamTPM.csv")
+write.csv(chao_order_BLAST_TPM,"chao_blastTPM.csv")
+write.csv(euc_order_BLAST_TPM,"euc_blastTPM.csv")
+
+cfn <- function(TERM){
+  chaoFun <- chao_order_Pfam_TPM[grepl(TERM, chao_order_Pfam_TPM$Pfam), ]
+  chaoFun <<- chaoFun
+  return(dim(chaoFun))
+}
+
+efn <- function(TERM){
+  eucFun <- euc_order_Pfam_TPM[grepl(TERM, euc_order_Pfam_TPM$Pfam), ]
+  eucFun <<- eucFun
+  return(dim(eucFun))
+}
+
+
