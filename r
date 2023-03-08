@@ -835,16 +835,18 @@ write.csv(euc_order_Pfam_TPM,"euc_pfamTPM.csv")
 write.csv(chao_order_BLAST_TPM,"chao_blastTPM.csv")
 write.csv(euc_order_BLAST_TPM,"euc_blastTPM.csv")
 
+#function to call any search term from the pfam column :) 
 cfn <- function(TERM){
-  chaoFun <- chao_order_Pfam_TPM[grepl(TERM, chao_order_Pfam_TPM$Pfam), ]
-  chaoFun <<- chaoFun
+  chaoFun <- chao_order_PfamTPM[grepl(TERM, chao_order_PfamTPM$Pfam), ]
+  write.table(chaoFun,paste0('chao_',TERM),sep = '\t',row.names = FALSE )
   return(dim(chaoFun))
 }
 
 efn <- function(TERM){
   eucFun <- euc_order_Pfam_TPM[grepl(TERM, euc_order_Pfam_TPM$Pfam), ]
-  eucFun <<- eucFun
+  write.table(eucFun,paste0('euc_',TERM),sep = '\t',row.names = FALSE )
   return(dim(eucFun))
 }
+
 
 
