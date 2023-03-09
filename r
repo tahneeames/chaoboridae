@@ -835,15 +835,16 @@ write.csv(euc_order_Pfam_TPM,"euc_pfamTPM.csv")
 write.csv(chao_order_BLAST_TPM,"chao_blastTPM.csv")
 write.csv(euc_order_BLAST_TPM,"euc_blastTPM.csv")
 
-#function to call any search term from the pfam column :) 
+#function for spreadsheet with pfam terms in chaoborus 
 cfn <- function(TERM){
-  chaoFun <- chao_order_PfamTPM[grepl(TERM, chao_order_PfamTPM$Pfam), ]
+  chaoFun <- chao_trinotateTPM[grepl(TERM, chao_trinotateTPM$Pfam), ]
   write.table(chaoFun,paste0('chao_',TERM),sep = '\t',row.names = FALSE )
   return(dim(chaoFun))
 }
 
+#eucorethra 
 efn <- function(TERM){
-  eucFun <- euc_order_Pfam_TPM[grepl(TERM, euc_order_Pfam_TPM$Pfam), ]
+  eucFun <- euc_trinotateTPM[grepl(TERM, euc_trinotateTPM$Pfam), ]
   write.table(eucFun,paste0('euc_',TERM),sep = '\t',row.names = FALSE )
   return(dim(eucFun))
 }
