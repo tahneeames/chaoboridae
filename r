@@ -868,8 +868,8 @@ scaleFactor <- max(chaoFun$mt_TPM) / max(chaoFun$gi_TPM)
 ggplot(chaoFun,aes(x=as_TPM)) +
   geom_point(aes(y=mt_TPM,fill="mt",color="mt"),alpha=.6,size=1.6)+  
   geom_point(aes(y=gi_TPM,fill="gi",color="gi"),alpha=.6,size=1.6)+
-  geom_smooth(aes(y=mt_TPM,color="mt"),method=lm,se=FALSE)+
-  geom_smooth(aes(y=gi_TPM,color="gi"),method=lm,se=FALSE)+
+  geom_smooth(aes(y=mt_TPM,color="mt"),fill="#D9C5C1",method=lm)+
+  geom_smooth(aes(y=gi_TPM,color="gi"),fill="#CEDCD7",method=lm)+
 scale_color_manual(
   name ="Comparison",
   values=c("mt"="#9B5F59","gi"="#77ACA2"),
@@ -894,8 +894,8 @@ scaleFactor <- max(eucFun$mt_TPM) / max(eucFun$gi_TPM)
 ggplot(eucFun,aes(x=tr_TPM)) +
   geom_point(aes(y=mt_TPM,fill="mt",color="mt"),alpha=.6,size=1.6)+  
   geom_point(aes(y=gi_TPM,fill="gi",color="gi"),alpha=.6,size=1.6)+
-  geom_smooth(aes(y=mt_TPM,color="mt"),method=lm,se=FALSE)+
-  geom_smooth(aes(y=gi_TPM,color="gi"),method=lm,se=FALSE)+
+  geom_smooth(aes(y=mt_TPM,color="mt"),fill="#D9C5C1",method=lm)+
+  geom_smooth(aes(y=gi_TPM,color="gi"),fill="#CEDCD7",method=lm)+
 scale_color_manual(
   name ="Comparison",
   values=c("mt"="#9B5F59","gi"="#77ACA2"),
