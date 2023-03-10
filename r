@@ -868,8 +868,8 @@ scaleFactor <- max(chaoFun$mt_TPM) / max(chaoFun$gi_TPM)
 ggplot(chaoFun,aes(x=as_TPM)) +
   geom_point(aes(y=mt_TPM,fill="mt",color="mt"),alpha=.6,size=1.6)+  
   geom_point(aes(y=gi_TPM,fill="gi",color="gi"),alpha=.6,size=1.6)+
-  geom_smooth(aes(y=mt_TPM,color="mt"),fill="#D9C5C1",method=lm)+
-  geom_smooth(aes(y=gi_TPM,color="gi"),fill="#CEDCD7",method=lm)+
+  geom_smooth(aes(y=mt_TPM),color="#9B5F59", fill="#D9C5C1",method=lm)+
+  geom_smooth(aes(y=gi_TPM),color="#77ACA2",fill="#CEDCD7",method=lm)+
 scale_color_manual(
   name ="Comparison",
   values=c("mt"="#9B5F59","gi"="#77ACA2"),
@@ -886,7 +886,7 @@ theme_classic()+
 theme(text = element_text(size = 12, face="bold"),axis.title = element_text(face="bold"),axis.text.x=element_text(size = 10,face="bold"),axis.text.y=element_text(size = 8),panel.grid.major = element_blank(),panel.grid.minor = element_blank())+
 theme(panel.background = element_rect(fill = "transparent",colour = "transparent"))+
 theme(plot.background = element_rect(fill = "transparent"))+
-theme(legend.position=c(.3,.93))+
+theme(legend.position=c(.2,.93))+
 theme(legend.background = element_rect(fill = "transparent"),legend.key = element_rect(fill = "transparent", color = NA))
 
 #eucorethra
@@ -894,8 +894,8 @@ scaleFactor <- max(eucFun$mt_TPM) / max(eucFun$gi_TPM)
 ggplot(eucFun,aes(x=tr_TPM)) +
   geom_point(aes(y=mt_TPM,fill="mt",color="mt"),alpha=.6,size=1.6)+  
   geom_point(aes(y=gi_TPM,fill="gi",color="gi"),alpha=.6,size=1.6)+
-  geom_smooth(aes(y=mt_TPM,color="mt"),fill="#D9C5C1",method=lm)+
-  geom_smooth(aes(y=gi_TPM,color="gi"),fill="#CEDCD7",method=lm)+
+  geom_smooth(aes(y=mt_TPM),color="#9B5F59",fill="#D9C5C1",method=lm)+
+  geom_smooth(aes(y=gi_TPM),color="#77ACA2",fill="#CEDCD7",method=lm)+
 scale_color_manual(
   name ="Comparison",
   values=c("mt"="#9B5F59","gi"="#77ACA2"),
@@ -912,7 +912,7 @@ theme_classic()+
 theme(text = element_text(size = 12, face="bold"),axis.title = element_text(face="bold"),axis.text.x=element_text(size = 10,face="bold"),axis.text.y=element_text(size = 8),panel.grid.major = element_blank(),panel.grid.minor = element_blank())+
 theme(panel.background = element_rect(fill = "transparent",colour = "transparent"))+
 theme(plot.background = element_rect(fill = "transparent"))+
-theme(legend.position=c(.3,.93))+
+theme(legend.position=c(.2,.93))+
 theme(legend.background = element_rect(fill = "transparent"),legend.key = element_rect(fill = "transparent", color = NA))
 
 
