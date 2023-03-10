@@ -849,6 +849,7 @@ write.csv(euc_order_BLAST_TPM,"euc_blastTPM.csv")
 #function for spreadsheet with pfam terms in chaoborus 
 cfn <- function(TERM){
   chaoFun <- chao_trinotateTPM[grepl(TERM, chao_trinotateTPM$Pfam), ]
+  chaoFun <<- chaoFun
   write.table(chaoFun,paste0('chao_',TERM),sep = '\t',row.names = FALSE )
   return(dim(chaoFun))
 }
@@ -856,6 +857,7 @@ cfn <- function(TERM){
 #eocurethra 
 efn <- function(TERM){
   eucFun <- euc_trinotateTPM[grepl(TERM, euc_trinotateTPM$Pfam), ]
+  eucFun <<- eucFun
   write.table(eucFun,paste0('euc_',TERM),sep = '\t',row.names = FALSE )
   return(dim(eucFun))
 }
