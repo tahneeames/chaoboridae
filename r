@@ -823,6 +823,17 @@ euc_trinotateTPM=merge(x = euc_isoCount, y = eucTrinotate, by = "transcript_id")
 write.csv(chao_trinotateTPM,"chao_trinotateTPM.csv")
 write.csv(euc_trinotateTPM,"euc_trinotateTPM.csv")
 
+#adding averages for TPM values of tissue replicates 
+#chaoborus
+chao_trinotateTPM$as_TPM <- rowMeans(chao_trinotateTPM[ , c(2,3)], na.rm=TRUE)
+chao_trinotateTPM$mt_TPM <- rowMeans(chao_trinotateTPM[ , c(6,7)], na.rm=TRUE)
+chao_trinotateTPM$gi_TPM <- rowMeans(chao_trinotateTPM[ , c(4,5)], na.rm=TRUE)
+#eucorethra 
+euc_trinotateTPM$tr_TPM <- rowMeans(euc_trinotateTPM[ , c(8,10)], na.rm=TRUE)
+euc_trinotateTPM$mt_TPM <- rowMeans(euc_trinotateTPM[ , c(5,7)], na.rm=TRUE)
+euc_trinotateTPM$gi_TPM <- rowMeans(euc_trinotateTPM[ , c(2,4)], na.rm=TRUE)
+
+
 #probably should add the tpm to the other spreadsheets, too? At least the blast and pfam ones 
 chao_order_Pfam_TPM=merge(x = chao_order_Pfam, y = chao_isoCount, by = "transcript_id")
 chao_order_BLAST_TPM=merge(x = chao_order_BLAST, y = chao_isoCount, by = "transcript_id")
@@ -831,8 +842,8 @@ euc_order_BLAST_TPM=merge(x = euc_order_BLAST, y = euc_isoCount, by = "transcrip
 
 #save these too, why not! 
 write.csv(chao_order_Pfam_TPM,"chao_pfamTPM.csv")
-write.csv(euc_order_Pfam_TPM,"euc_pfamTPM.csv")
 write.csv(chao_order_BLAST_TPM,"chao_blastTPM.csv")
+write.csv(euc_order_Pfam_TPM,"euc_pfamTPM.csv")
 write.csv(euc_order_BLAST_TPM,"euc_blastTPM.csv")
 
 #function for spreadsheet with pfam terms in chaoborus 
@@ -842,12 +853,66 @@ cfn <- function(TERM){
   return(dim(chaoFun))
 }
 
-#eucorethra 
+#eocurethra 
 efn <- function(TERM){
   eucFun <- euc_trinotateTPM[grepl(TERM, euc_trinotateTPM$Pfam), ]
   write.table(eucFun,paste0('euc_',TERM),sep = '\t',row.names = FALSE )
   return(dim(eucFun))
 }
+
+#using the function to plot genes related to any term 
+#chaoborus 
+scaleFactor <- max(chaoFun$mt_TPM) / max(chaoFun$gi_TPM) 
+ggplot(chaoFun,aes(x=as_TPM)) +
+  geom_point(aes(y=mt_TPM,fill="mt",color="mt"),alpha=.6,size=1.6)+  
+  geom_point(aes(y=gi_TPM,fill="gi",color="gi"),alpha=.6,size=1.6)+
+  geom_smooth(aes(y=mt_TPM,color="mt"),method=lm,se=FALSE)+
+  geom_smooth(aes(y=gi_TPM,color="gi"),method=lm,se=FALSE)+
+scale_color_manual(
+  name ="Comparison",
+  values=c("mt"="#9B5F59","gi"="#77ACA2"),
+  breaks=c("mt","gi"),
+  labels=c("malpighian tubules vs air-sac","midgut vs air-sac"))+
+scale_fill_manual(
+  name ="Comparison",
+  values=c("mt"="#9B5F59","gi"="#77ACA2"),
+  breaks=c("mt","gi"),
+  labels=c("malpighian tubules vs air-sac","midgut vs air-sac"))+
+ scale_y_continuous(name="Malpighian tubule transcription (TPM)", sec.axis=sec_axis(~./scaleFactor, name="Midgut transcription (TPM)")) +
+xlab("Air-sac transcription (TPM)")+
+theme_classic()+
+theme(text = element_text(size = 12, face="bold"),axis.title = element_text(face="bold"),axis.text.x=element_text(size = 10,face="bold"),axis.text.y=element_text(size = 8),panel.grid.major = element_blank(),panel.grid.minor = element_blank())+
+theme(panel.background = element_rect(fill = "transparent",colour = "transparent"))+
+theme(plot.background = element_rect(fill = "transparent"))+
+theme(legend.position=c(.3,.93))+
+theme(legend.background = element_rect(fill = "transparent"),legend.key = element_rect(fill = "transparent", color = NA))
+
+#eucorethra
+scaleFactor <- max(eucFun$mt_TPM) / max(eucFun$gi_TPM) 
+ggplot(eucFun,aes(x=tr_TPM)) +
+  geom_point(aes(y=mt_TPM,fill="mt",color="mt"),alpha=.6,size=1.6)+  
+  geom_point(aes(y=gi_TPM,fill="gi",color="gi"),alpha=.6,size=1.6)+
+  geom_smooth(aes(y=mt_TPM,color="mt"),method=lm,se=FALSE)+
+  geom_smooth(aes(y=gi_TPM,color="gi"),method=lm,se=FALSE)+
+scale_color_manual(
+  name ="Comparison",
+  values=c("mt"="#9B5F59","gi"="#77ACA2"),
+  breaks=c("mt","gi"),
+  labels=c("malpighian tubules vs trachea","midgut vs trachea"))+
+scale_fill_manual(
+  name ="Comparison",
+  values=c("mt"="#9B5F59","gi"="#77ACA2"),
+  breaks=c("mt","gi"),
+  labels=c("malpighian tubules vs trachea","midgut vs trachea"))+
+ scale_y_continuous(name="Malpighian tubule transcription (TPM)", sec.axis=sec_axis(~./scaleFactor, name="Midgut transcription (TPM)")) +
+xlab("Trachea transcription (TPM)")+
+theme_classic()+
+theme(text = element_text(size = 12, face="bold"),axis.title = element_text(face="bold"),axis.text.x=element_text(size = 10,face="bold"),axis.text.y=element_text(size = 8),panel.grid.major = element_blank(),panel.grid.minor = element_blank())+
+theme(panel.background = element_rect(fill = "transparent",colour = "transparent"))+
+theme(plot.background = element_rect(fill = "transparent"))+
+theme(legend.position=c(.3,.93))+
+theme(legend.background = element_rect(fill = "transparent"),legend.key = element_rect(fill = "transparent", color = NA))
+
 
 
 
