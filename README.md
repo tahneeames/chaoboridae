@@ -1,7 +1,7 @@
 # chaoboridae
 Bioinformatics of Chaoboridae (Eucorethra, Mochlonyx, Chaoborus)
 
-Trinity de novo assembly of 3 tissues in Chaoborus trivittatus, Mochlonyx cinctipes (pending), and Eucorethra underwoodi 
+Trinity de novo assembly of 3 tissues in Chaoborus trivittatus, Mochlonyx cinctipes, and Eucorethra underwoodi 
 
 Functional annotation of de novo assemblies using Trinotate
 
