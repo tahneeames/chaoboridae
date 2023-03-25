@@ -234,4 +234,4 @@ cp trinity_out_dir/*Trinity.*.fasta $PBS_O_WORKDIR/
 rm trinity_out_dir/*.fq trinity_out_dir/*.fq.gz trinity_out_dir/*.fa
 
 tar -czf $PBS_O_WORKDIR/results.tgz ./*
-
+ 
