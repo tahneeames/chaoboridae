@@ -117,6 +117,125 @@ tar -czf $PBS_O_WORKDIR/results.tgz ./*
 
 
 
+##Mochlonyx assembly using Trinity RNAseq
+#Create sequencing directory for Mochlonyx samples 
+cd /lab_data/sequencing/RNAseq/mochlonyx/2023xxxx
+
+##create sample file for assembly from reads 
+nano moch-samples.txt
+
+#  Or,
+#      --samples_file /lab_data/sequencing/RNAseq/mochlonyx/2023xxxx       tab-delimited text file indicating biological replicate relationships.
+#                                  ex.
+
+
+
+chao_as  chao_as_rep1 /lab_data/sequencing/RNAseq/ /lab_data/sequencing/RNAseq/
+chao_as  chao_as_rep2 /lab_data/sequencing/RNAseq/ /lab_data/sequencing/RNAseq/ 
+chao_as  chao_as_rep3 /lab_data/sequencing/RNAseq/ /lab_data/sequencing/RNAseq/
+chao_mt  chao_mt_rep1 /lab_data/sequencing/RNAseq/ /lab_data/sequencing/RNAseq/
+chao_mt  chao_mt_rep2 /lab_data/sequencing/RNAseq/ /lab_data/sequencing/RNAseq/
+chao_mt  chao_mt_rep3 /lab_data/sequencing/RNAseq/ /lab_data/sequencing/RNAseq/
+chao_gi  chao_gi_rep1 /lab_data/sequencing/RNAseq/ /lab_data/sequencing/RNAseq/
+chao_gi  chao_gi_rep2 /lab_data/sequencing/RNAseq/ /lab_data/sequencing/RNAseq/
+chao_gi  chao_gi_rep3 /lab_data/sequencing/RNAseq/ /lab_data/sequencing/RNAseq/
+
+
+##Assemble with raw reads
+#copy samples file to assembly directory 
+cp moch-samples.txt /lab_data/assemblies/transcriptome/mochlonyx-untrimmed
+
+#move to assembly directory  
+cd mochlonyx-untrimmed
+
+#job script  
+nano trinityM_untrimmed.pbs
+#!/bin/bash
+
+#PBS -l walltime=120:00:00,select=1:ncpus=32:mem=187gb
+#PBS -N trinity_moch_untrim_CLEAN
+#PBS -A #alloc-code
+#PBS -m abe
+#PBS -M #contact
+#PBS -o 2023xxxx-moch-output.txt
+#PBS -e 2023xxxx-moch-error.txt
+
+################################################################################
+
+module load CVMFS_CC
+module load trinity/2.14.0
+module load samtools
+module load jellyfish
+module load gcc/9.3.0  openmpi/4.0.3
+module load salmon/1.7.0
+module load python
+module load scipy-stack
+
+echo "Job execution start: $(date)"
+
+cd $TMPDIR
+
+${TRINITY_HOME}/Trinity --seqType fq        \
+        --CPU 32 --max_memory 100G \
+        --samples_file $PBS_O_WORKDIR/moch-samples.txt   \
+
+rm $TMPDIR/trinity_out_dir/*.gz
+rm -r $TMPDIR/trinity_out_dir/chrysalis
+rm -r $TMPDIR/trinity_out_dir/insilico_read_normalization
+rm -r $TMPDIR/trinity_out_dir/read_partitions
+rm -r $TMPDIR/trinity_out_dir/__salmon_filt.chkpts
+
+tar -czf $PBS_O_WORKDIR/results.tgz ./*
+
+
+
+##Assemble with trimmomatic 
+#copy samples file to assembly directory 
+cp moch-samples.txt /lab_data/assemblies/transcriptome/mochlonyx-trimmed
+
+#move to assembly directory 
+cd mochlonyx-trimmed
+
+#job script 
+nano trinityM_trimmed.pbs
+#!/bin/bash
+
+#PBS -l walltime=120:00:00,select=1:ncpus=32:mem=375gb
+#PBS -N trinity_moch_trim_CLEAN
+#PBS -A #alloc-code
+#PBS -m abe
+#PBS -M #contact 
+#PBS -o 2023xxxx-moch-output.txt
+#PBS -e 2023xxxx-moch-error.txt
+
+################################################################################
+
+module load CVMFS_CC
+module load trinity/2.14.0
+module load samtools
+module load jellyfish
+module load gcc/9.3.0  openmpi/4.0.3
+module load salmon/1.7.0
+module load python
+module load scipy-stack
+
+echo "Job execution start: $(date)"
+
+cd $TMPDIR
+
+
+${TRINITY_HOME}/Trinity --seqType fq        \
+        --CPU 32 --max_memory 80G --trimmomatic \
+        --samples_file $PBS_O_WORKDIR/moch-samples.txt   \
+
+cp trinity_out_dir/*Trinity.*.fasta $PBS_O_WORKDIR/
+
+rm trinity_out_dir/*.fq trinity_out_dir/*.fq.gz trinity_out_dir/*.fa
+tar -czf $PBS_O_WORKDIR/results.tgz ./*
+
+
+
+
 ##Eucorethra assembly using Trinity RNAseq
 #Create sequencing directory for Eucorethra samples 
 cd /lab_data/sequencing/RNAseq/eucorethra/20220817
